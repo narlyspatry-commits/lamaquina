@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>La Máquina de los Cuentos</title>
+  <style>
+    :root{
+      --bg:#080a1f;
+      --panel:rgba(255,255,255,.10);
+      --panel2:rgba(255,255,255,.15);
+      --text:#fffaf2;
+      --muted:#d9d5ef;
+      --gold:#ffd56b;
+      --ok:#63f5a2;
+      --bad:#ff6f91;
+      --cyan:#5ee7ff;
+      --shadow:0 22px 55px rgba(0,0,0,.35);
+      --radius:26px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      min-height:100vh;
+      font-family:"Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 12% 12%,rgba(255,213,107,.22),transparent 28%),
+        radial-gradient(circle at 82% 18%,rgba(116,89,255,.26),transparent 30%),
+        radial-gradient(circle at 50% 95%,rgba(94,231,255,.18),transparent 34%),
+        linear-gradient(135deg,#07081b 0%,#111437 47%,#07091c 100%);
+      overflow-x:hidden;
+    }
+    button{font-family:inherit;cursor:pointer;border:none}
+    .screen{display:none;min-height:100vh;padding:34px 18px 56px;position:relative;z-index:2}
+    .screen.active{display:block;animation:fadeIn .45s ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    .shell{max-width:1180px;margin:auto}
+    .hero{
+      text-align:center;
+      padding:42px 24px 28px;
+      border-radius:34px;
+      background:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.04));
+      box-shadow:var(--shadow);
+      border:1px solid rgba(255,255,255,.16);
+      backdrop-filter:blur(14px);
+      position:relative;
+      overflow:hidden;
+    }
+    .hero:before{
+      content:"";position:absolute;inset:-2px;
+      background:linear-gradient(90deg,transparent,rgba(255,213,107,.24),transparent);
+      transform:translateX(-80%);animation:shine 6s linear infinite;
+    }
+    @keyframes shine{to{transform:translateX(80%)}}
+    .overline{letter-spacing:4px;text-transform:uppercase;color:var(--gold);font-weight:800;font-size:.82rem;margin-bottom:10px;position:relative}
+    h1{
+      font-size:clamp(2.4rem,7vw,5.2rem);
+      line-height:.98;
+      font-weight:950;
+      text-shadow:0 8px 28px rgba(0,0,0,.4);
+      position:relative;
+    }
+    .subtitle{font-size:clamp(1.05rem,2.5vw,1.55rem);margin:16px auto 0;color:#ffedf8;font-weight:700;position:relative}
+    .description{max-width:870px;margin:18px auto 0;color:var(--muted);font-size:1.05rem;line-height:1.7;position:relative}
+    .top-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px;position:relative}
+    .btn{
+      padding:13px 20px;border-radius:999px;
+      background:linear-gradient(135deg,#ffd56b,#ff8ac8);
+      color:#161028;font-weight:900;box-shadow:0 13px 30px rgba(255,138,200,.24);
+      transition:.22s transform,.22s filter;
+    }
+    .btn:hover{transform:translateY(-2px);filter:brightness(1.05)}
+    .btn.alt{background:rgba(255,255,255,.12);color:var(--text);border:1px solid rgba(255,255,255,.18);box-shadow:none}
+    .world-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:26px}
+    .world-card{
+      min-height:245px;border-radius:var(--radius);padding:24px;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:var(--shadow);position:relative;overflow:hidden;
+      transition:.26s transform,.26s box-shadow;
+    }
+    .world-card:hover{transform:translateY(-7px) scale(1.01);box-shadow:0 30px 70px rgba(0,0,0,.45)}
+    .world-card:after{content:"";position:absolute;inset:auto -40px -80px auto;width:190px;height:190px;border-radius:50%;background:rgba(255,255,255,.16)}
+    .world-icon{font-size:3.2rem;margin-bottom:14px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.25))}
+    .world-card h2{font-size:1.45rem;margin-bottom:10px;position:relative;z-index:1}
+    .world-card p{color:rgba(255,255,255,.88);line-height:1.55;position:relative;z-index:1}
+    .world-card .enter{margin-top:18px;position:relative;z-index:1;background:rgba(255,255,255,.92);color:#161028;border-radius:16px;padding:11px 16px;font-weight:900}
+    .w1{background:linear-gradient(135deg,#34205d,#164b8f 47%,#f7b7d8 100%)}
+    .w2{background:linear-gradient(135deg,#37d5e8,#0a416f 58%,#ff9a66)}
+    .w3{background:linear-gradient(135deg,#f6d86b,#b92050 55%,#0f5f86)}
+    .w4{background:linear-gradient(135deg,#0e5eff,#0fc2bb)}
+    .w5{background:linear-gradient(135deg,#f6e6c8,#8b633f 65%,#3b2419)}
+    .w6{background:linear-gradient(135deg,#fff8e8,#9d9589 45%,#5a3ca5)}
+    .lesson-panel,.game-panel{
+      border-radius:34px;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.06));
+      border:1px solid rgba(255,255,255,.16);box-shadow:var(--shadow);padding:28px;backdrop-filter:blur(14px);
+    }
+    .lesson-head,.game-head{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:20px}
+    .lesson-title{display:flex;gap:18px;align-items:center}
+    .big-icon{font-size:4rem;width:92px;height:92px;border-radius:28px;display:grid;place-items:center;background:rgba(255,255,255,.13);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+    .lesson-title h2,.game-title h2{font-size:clamp(1.7rem,4vw,3rem);line-height:1.05}
+    .topic{color:var(--gold);font-weight:900;margin-top:6px}
+    .lesson-text{font-size:1.07rem;line-height:1.75;color:var(--muted);margin:18px 0}
+    .didactic-key{border-left:5px solid var(--gold);background:rgba(255,213,107,.12);padding:18px;border-radius:18px;line-height:1.65;margin:20px 0}
+    .concept-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:20px}
+    .concept{background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.13);border-radius:22px;padding:18px;line-height:1.55}
+    .concept b{color:#fff3b2;display:block;margin-bottom:6px}
+    .game-layout{display:grid;grid-template-columns:1.05fr 1fr;gap:22px}
+    .status-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0 18px}
+    .pill{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.13);border-radius:999px;padding:9px 13px;font-weight:850}
+    .progress-wrap,.time-wrap{height:14px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;border:1px solid rgba(255,255,255,.1)}
+    .progress-bar{height:100%;width:0;background:linear-gradient(90deg,#65f5ff,#ffd56b,#ff8ac8);transition:.35s width}
+    .time-bar{height:100%;width:100%;background:linear-gradient(90deg,#63f5a2,#ffd56b,#ff6f91);transition:.25s width linear}
+    .text-card{background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.13);border-radius:24px;padding:22px;line-height:1.75;min-height:390px}
+    .mission{color:#fff3b2;font-weight:900;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;font-size:.82rem}
+    .fragment{font-size:1.05rem;background:rgba(255,255,255,.08);border-radius:18px;padding:16px;margin-bottom:15px}
+    .hint{color:#bdf7ff;background:rgba(94,231,255,.10);border-radius:16px;padding:13px;margin-bottom:15px}
+    .remember{color:#ffe0f0;background:rgba(255,138,200,.10);border-radius:16px;padding:13px}
+    .question-card{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.13);border-radius:24px;padding:22px;min-height:390px}
+    .question{font-size:1.25rem;font-weight:950;line-height:1.45;margin-bottom:18px}
+    .options{display:grid;gap:13px}
+    .option{
+      text-align:left;padding:15px 16px;border-radius:18px;background:rgba(255,255,255,.12);color:var(--text);
+      border:1px solid rgba(255,255,255,.15);font-weight:750;line-height:1.45;transition:.18s transform,.18s background,.18s border;
+    }
+    .option:hover{transform:translateX(4px);background:rgba(255,255,255,.18)}
+    .option.correct{background:rgba(99,245,162,.22);border-color:rgba(99,245,162,.72)}
+    .option.wrong{background:rgba(255,111,145,.20);border-color:rgba(255,111,145,.70)}
+    .goal{margin-top:15px;color:#ffeab0;font-weight:800;line-height:1.5}
+    .modal{
+      position:fixed;inset:0;background:rgba(2,4,14,.72);display:none;place-items:center;z-index:20;padding:18px;backdrop-filter:blur(8px)
+    }
+    .modal.active{display:grid;animation:fadeIn .24s ease both}
+    .modal-card{max-width:560px;width:100%;border-radius:32px;background:linear-gradient(135deg,#191d43,#0f112a);border:1px solid rgba(255,255,255,.18);box-shadow:0 30px 90px rgba(0,0,0,.6);padding:28px;text-align:center;position:relative;overflow:hidden}
+    .modal-card.ok{box-shadow:0 30px 90px rgba(99,245,162,.16)}
+    .modal-card.bad{box-shadow:0 30px 90px rgba(255,111,145,.16)}
+    .modal-emoji{font-size:4rem;margin-bottom:10px}
+    .modal-card h3{font-size:2rem;margin-bottom:12px}
+    .modal-card p{line-height:1.7;color:var(--muted);margin-bottom:14px}
+    .modal-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+    .floaters{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+    .floater{position:absolute;font-size:2rem;opacity:.16;animation:float 16s linear infinite;filter:blur(.1px)}
+    @keyframes float{from{transform:translateY(110vh) rotate(0deg)}to{transform:translateY(-15vh) rotate(360deg)}}
+    .confetti{position:fixed;width:10px;height:14px;top:-20px;z-index:30;pointer-events:none;border-radius:3px;animation:fall 1.45s ease-out forwards}
+    @keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:0}}
+    .footer-note{text-align:center;color:rgba(255,255,255,.54);margin-top:28px;font-size:.95rem}
+    @media(max-width:900px){.world-grid,.concept-grid,.game-layout{grid-template-columns:1fr}.hero{padding:34px 18px}.lesson-panel,.game-panel{padding:20px}.text-card,.question-card{min-height:auto}.big-icon{width:74px;height:74px;font-size:3rem}}
+  </style>
+</head>
+<body>
+  <div class="floaters" id="floaters"></div>
+
+  <main id="home" class="screen active">
+    <section class="shell">
+      <div class="hero">
+        <div class="overline">Laboratorio literario interactivo</div>
+        <h1>La Máquina de los Cuentos</h1>
+        <p class="subtitle">Donde las historias cobran vida.</p>
+        <p class="description">Embárcate en una aventura por historias llenas de magia, personajes sorprendentes y tradiciones de Colombia. Recorre seis mundos interactivos, supera desafíos y conviértete en un gran explorador de cuentos mientras fortaleces tu comprensión lectora y desarrollas tu imaginación.</p>
+        <div class="top-actions">
+          <button class="btn" onclick="startSound()">✨ Activar aventura</button>
+          <button class="btn alt" id="soundHome" onclick="toggleSound()">🔊 Sonido activo</button>
+        </div>
+      </div>
+      <section class="world-grid" id="worldGrid"></section>
+      <p class="footer-note">Diseñado para fortalecer comprensión lectora, secuencia narrativa, inferencias, personajes y lenguaje creativo.</p>
+    </section>
+  </main>
+
+  <main id="lesson" class="screen">
+    <section class="shell lesson-panel" id="lessonPanel"></section>
+  </main>
+
+  <main id="game" class="screen">
+    <section class="shell game-panel" id="gamePanel"></section>
+  </main>
+
+  <div class="modal" id="feedbackModal">
+    <div class="modal-card" id="modalCard">
+      <div class="modal-emoji" id="modalEmoji">✨</div>
+      <h3 id="modalTitle">Muy bien</h3>
+      <p id="modalText"></p>
+      <p id="modalRemember"></p>
+      <div class="modal-actions">
+        <button class="btn" id="modalNext" onclick="nextAction()">Siguiente nivel</button>
+        <button class="btn alt" onclick="goHome()">Volver al inicio</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const worlds = [
+      {
+        id:0, cls:'w1', icon:'📚', title:'La Biblioteca Encantada', topic:'Reconocimiento de cuentos y comprensión general',
+        lesson:'En este mundo aprenderás a reconocer el cuento como una narración breve con personajes, acciones, lugar y un conflicto que se resuelve. También practicarás la lectura general para identificar de qué trata un texto.',
+        key:'Clave didáctica: antes de responder, observa quién participa, qué sucede, dónde ocurre y cuál es la enseñanza o idea principal del fragmento.',
+        concepts:[['Cuento','Narración breve que presenta una historia imaginaria o tradicional.'],['Idea general','Es el tema principal o aquello de lo que trata el texto.'],['Detalles','Son datos específicos que ayudan a comprender mejor la historia.']],
+        levels:[
+          {mission:'Reconoce el tipo de texto',fragment:'En un pequeño pueblo del Caribe, una niña encontró una llave dorada debajo de una ceiba. Al abrir una puerta antigua, escuchó que los libros le susurraban historias.',hint:'Piensa si el texto narra hechos con personajes y acciones.',question:'¿Qué tipo de texto es el fragmento?',options:['Una receta','Un cuento','Una noticia','Una carta'],correct:1,explanation:'Es un cuento porque narra hechos imaginarios con personajes, lugar y acciones.',remember:'Un cuento presenta una historia con inicio, conflicto y final.',goal:'Identificar cuentos a partir de sus rasgos narrativos.'},
+          {mission:'Comprende la idea general',fragment:'Cada noche, el abuelo Tomás reunía a sus nietos en el patio para contarles leyendas de pescadores, luciérnagas y barcos que brillaban bajo la luna.',hint:'Busca de qué trata principalmente el fragmento.',question:'¿Cuál es la idea general del texto?',options:['Un abuelo cuenta historias a sus nietos','Los niños juegan fútbol','Un barco se hunde en el mar','Una familia prepara comida'],correct:0,explanation:'La idea general es que el abuelo comparte historias con sus nietos durante la noche.',remember:'La idea general resume el sentido principal del texto.',goal:'Reconocer el tema central de un fragmento narrativo.'},
+          {mission:'Identifica el lugar',fragment:'La princesa de las mariposas vivía en una biblioteca secreta, donde cada estante tenía puertas diminutas hacia mundos desconocidos.',hint:'Pregunta: ¿dónde ocurre la acción?',question:'¿En qué lugar ocurre la historia?',options:['En una cancha','En una biblioteca secreta','En un mercado','En una montaña nevada'],correct:1,explanation:'El fragmento menciona claramente que la princesa vivía en una biblioteca secreta.',remember:'El lugar es el espacio donde se desarrollan los hechos.',goal:'Ubicar el escenario de una narración.'},
+          {mission:'Distingue realidad e imaginación',fragment:'El cuaderno de Mariana abrió sus páginas y comenzó a dibujar por sí solo un mapa hacia una isla de palabras.',hint:'Observa si el hecho puede ocurrir en la vida real.',question:'¿Qué elemento hace que el texto sea imaginario?',options:['Mariana tiene un cuaderno','El cuaderno dibuja por sí solo','Existe una isla','Hay un mapa'],correct:1,explanation:'Un cuaderno que dibuja solo es un hecho fantástico propio de la imaginación.',remember:'Los cuentos pueden incluir sucesos reales, imaginarios o fantásticos.',goal:'Reconocer elementos fantásticos dentro de un cuento.'},
+          {mission:'Interpreta una enseñanza',fragment:'El conejo veloz se burló de la tortuga, pero al confiarse se quedó dormido. La tortuga avanzó sin rendirse y llegó primero a la meta.',hint:'Piensa en lo que nos enseña la acción de la tortuga.',question:'¿Cuál enseñanza deja el fragmento?',options:['La burla siempre ayuda','La constancia puede vencer al exceso de confianza','Dormir es más importante que competir','La velocidad siempre gana'],correct:1,explanation:'La tortuga gana porque fue constante, mientras el conejo perdió por confiarse demasiado.',remember:'Muchos cuentos dejan una enseñanza o reflexión.',goal:'Inferir una enseñanza sencilla a partir de acciones narrativas.'}
+        ]
+      },
+      {
+        id:1, cls:'w2', icon:'🏠', title:'La Casa de las Historias', topic:'Inicio, nudo y desenlace',
+        lesson:'Toda historia suele organizarse en tres momentos: inicio, nudo y desenlace. El inicio presenta personajes y lugar; el nudo muestra el problema; el desenlace cuenta cómo termina o se resuelve.',
+        key:'Clave didáctica: identifica primero qué se presenta, luego qué problema aparece y finalmente cómo se soluciona.',
+        concepts:[['Inicio','Presenta personajes, lugar y situación inicial.'],['Nudo','Expone el conflicto o problema principal.'],['Desenlace','Muestra la solución o cierre de la historia.']],
+        levels:[
+          {mission:'Reconoce el inicio',fragment:'En una vereda rodeada de montañas vivía Samuel, un niño curioso que cuidaba una cometa roja heredada de su abuela.',hint:'El inicio suele presentar quién, dónde y cómo empieza todo.',question:'¿Qué parte del cuento representa el fragmento?',options:['Inicio','Nudo','Desenlace','Moraleja'],correct:0,explanation:'Presenta al personaje, el lugar y una situación inicial; por eso corresponde al inicio.',remember:'El inicio nos ubica dentro de la historia.',goal:'Diferenciar el inicio de otras partes del cuento.'},
+          {mission:'Reconoce el nudo',fragment:'De pronto, un viento fuerte arrancó la cometa de las manos de Samuel y la llevó hasta el árbol más alto del pueblo.',hint:'Busca el problema o dificultad.',question:'¿Qué parte del cuento aparece en el fragmento?',options:['Inicio','Nudo','Desenlace','Título'],correct:1,explanation:'Aquí aparece el conflicto: Samuel pierde su cometa por causa del viento.',remember:'El nudo contiene el problema que mueve la historia.',goal:'Identificar el conflicto principal en una narración.'},
+          {mission:'Reconoce el desenlace',fragment:'Con ayuda de sus amigos, Samuel alcanzó la cometa y prometió compartirla cada tarde en el parque.',hint:'El desenlace muestra cómo termina el problema.',question:'¿Qué parte del cuento representa este fragmento?',options:['Nudo','Inicio','Desenlace','Descripción'],correct:2,explanation:'El problema se resuelve porque Samuel recupera la cometa y toma una decisión final.',remember:'El desenlace cierra la historia y resuelve el conflicto.',goal:'Reconocer el cierre de un cuento.'},
+          {mission:'Ordena partes del cuento',fragment:'1. Lina vivía cerca del río. 2. Una lluvia dañó el puente. 3. El pueblo construyó un puente nuevo.',hint:'Relaciona cada número con inicio, nudo y desenlace.',question:'¿Cuál orden corresponde a las partes del cuento?',options:['Nudo, inicio, desenlace','Inicio, nudo, desenlace','Desenlace, inicio, nudo','Inicio, desenlace, nudo'],correct:1,explanation:'Primero se presenta a Lina y el lugar; luego surge el problema; al final se soluciona.',remember:'El orden básico es inicio, nudo y desenlace.',goal:'Ordenar la estructura narrativa de manera lógica.'},
+          {mission:'Detecta el conflicto',fragment:'Camila preparó una función de títeres para su clase, pero al llegar descubrió que había olvidado las marionetas en casa.',hint:'El conflicto es aquello que complica la situación.',question:'¿Cuál es el conflicto del fragmento?',options:['Camila estudia en una escuela','Camila olvidó las marionetas','La clase termina temprano','Los títeres son coloridos'],correct:1,explanation:'El problema es que Camila no tiene las marionetas necesarias para su presentación.',remember:'Sin conflicto, la historia pierde tensión narrativa.',goal:'Comprender la función del nudo en el cuento.'}
+        ]
+      },
+      {
+        id:2, cls:'w3', icon:'🛤️', title:'El Camino de las Aventuras', topic:'Secuencia de acontecimientos',
+        lesson:'La secuencia narrativa es el orden en que ocurren los acontecimientos. Para comprender una historia, es importante reconocer qué sucede primero, después y al final.',
+        key:'Clave didáctica: usa palabras como primero, luego, después, mientras tanto y finalmente para reconstruir el camino de la historia.',
+        concepts:[['Secuencia','Orden de los hechos de una narración.'],['Conectores','Palabras que ayudan a organizar los acontecimientos.'],['Causa y efecto','Un hecho puede provocar otro dentro del cuento.']],
+        levels:[
+          {mission:'Encuentra el primer hecho',fragment:'Primero, Ana sembró una semilla. Luego la regó cada mañana. Finalmente, nació una flor amarilla.',hint:'Busca la palabra que marca el comienzo.',question:'¿Qué ocurrió primero?',options:['Nació una flor','Ana sembró una semilla','Ana cortó la flor','La semilla desapareció'],correct:1,explanation:'El texto dice “Primero, Ana sembró una semilla”.',remember:'El primer acontecimiento inicia la cadena narrativa.',goal:'Identificar el comienzo de una secuencia.'},
+          {mission:'Reconoce el hecho final',fragment:'Mateo encontró una botella con un mensaje, siguió las pistas por la playa y finalmente descubrió un cofre con cartas antiguas.',hint:'Observa la palabra finalmente.',question:'¿Qué ocurrió al final?',options:['Mateo encontró una botella','Siguió pistas por la playa','Descubrió un cofre con cartas','Escribió una carta nueva'],correct:2,explanation:'La palabra “finalmente” indica que el último hecho fue descubrir el cofre.',remember:'Los conectores temporales ayudan a ordenar la historia.',goal:'Reconocer el cierre de una secuencia de hechos.'},
+          {mission:'Ordena acontecimientos',fragment:'A. La lluvia empezó. B. Los niños guardaron los libros. C. Entraron al salón para leer.',hint:'Piensa qué acción ocurre de manera lógica después de la lluvia.',question:'¿Cuál es el orden más lógico?',options:['A, B, C','C, A, B','B, C, A','A, C, B'],correct:0,explanation:'Primero llueve, luego los niños guardan los libros y después entran al salón.',remember:'Una secuencia debe tener coherencia temporal y lógica.',goal:'Ordenar hechos de forma coherente.'},
+          {mission:'Comprende causa y efecto',fragment:'El dragón estornudó tan fuerte que apagó todas las velas del castillo. Por eso, los habitantes buscaron faroles para iluminar la noche.',hint:'Pregunta: ¿qué hecho causó que buscaran faroles?',question:'¿Cuál fue la causa de buscar faroles?',options:['El castillo era grande','El dragón apagó las velas','La noche era alegre','Los habitantes cantaron'],correct:1,explanation:'Buscaron faroles porque el estornudo del dragón apagó las velas.',remember:'La causa explica por qué ocurre un efecto.',goal:'Relacionar hechos mediante causa y consecuencia.'},
+          {mission:'Identifica conectores',fragment:'Después de cruzar el puente, Laura encontró una cueva. Más tarde, escuchó una voz que salía de una piedra brillante.',hint:'Busca palabras que marcan tiempo.',question:'¿Qué palabras ayudan a ordenar la secuencia?',options:['Puente y cueva','Después y más tarde','Laura y voz','Piedra y brillante'],correct:1,explanation:'“Después” y “más tarde” son conectores temporales que ordenan los acontecimientos.',remember:'Los conectores temporales guían al lector por el orden de la narración.',goal:'Reconocer conectores de secuencia narrativa.'}
+        ]
+      },
+      {
+        id:3, cls:'w4', icon:'🕵️', title:'Los Detectives del Cuento', topic:'Comprensión lectora e inferencias',
+        lesson:'Inferir significa descubrir información que no está escrita de forma directa, pero que se puede deducir con pistas del texto y conocimientos previos.',
+        key:'Clave didáctica: no todas las respuestas están escritas literalmente. Lee las pistas, piensa en el contexto y deduce con cuidado.',
+        concepts:[['Comprensión literal','Información que aparece explícitamente en el texto.'],['Inferencia','Conclusión que se deduce a partir de pistas.'],['Pista textual','Palabra o detalle que ayuda a comprender algo oculto.']],
+        levels:[
+          {mission:'Deducción de emoción',fragment:'Valeria miró el escenario, apretó sus manos y respiró profundo antes de decir su primera línea.',hint:'Observa sus acciones antes de hablar en público.',question:'¿Qué se puede inferir sobre Valeria?',options:['Está nerviosa','Está dormida','Está enojada con todos','No sabe leer'],correct:0,explanation:'Apretar las manos y respirar profundo antes de actuar son pistas de nerviosismo.',remember:'Inferir es leer más allá de lo evidente.',goal:'Deducir emociones a partir de acciones.'},
+          {mission:'Deducción de lugar',fragment:'El olor a pan caliente llenaba el lugar mientras Julia miraba vitrinas con rosquillas, tortas y galletas recién hechas.',hint:'Busca pistas de objetos y olores.',question:'¿Dónde está Julia probablemente?',options:['En una biblioteca','En una panadería','En un estadio','En una estación de policía'],correct:1,explanation:'Las pistas pan caliente, rosquillas, tortas y galletas indican una panadería.',remember:'Las pistas del ambiente ayudan a inferir el lugar.',goal:'Inferir escenarios a partir de detalles.'},
+          {mission:'Comprensión literal',fragment:'El pescador salió al amanecer con una red azul y regresó al mediodía con tres peces plateados.',hint:'Busca el dato escrito directamente.',question:'¿Cuántos peces trajo el pescador?',options:['Dos','Tres','Cinco','Ninguno'],correct:1,explanation:'El texto dice directamente que regresó con tres peces plateados.',remember:'La comprensión literal responde con información escrita en el texto.',goal:'Diferenciar información explícita de inferida.'},
+          {mission:'Inferir intención',fragment:'Aunque tenía poco dinero, Simón compró una libreta para su hermana porque sabía que ella soñaba con escribir cuentos.',hint:'Piensa en la razón de la compra.',question:'¿Qué intención tuvo Simón?',options:['Molestar a su hermana','Apoyar el sueño de su hermana','Gastar dinero sin motivo','Comprar algo para él'],correct:1,explanation:'Simón compra la libreta porque sabe que su hermana quiere escribir cuentos; su intención es apoyarla.',remember:'Las acciones revelan intenciones de los personajes.',goal:'Inferir motivos a partir de acciones narrativas.'},
+          {mission:'Detecta una pista',fragment:'La abuela puso más cobijas en la cama, cerró la ventana y preparó chocolate caliente.',hint:'Todas las acciones apuntan a una condición del ambiente.',question:'¿Qué se puede inferir del ambiente?',options:['Hace mucho calor','Hace frío','Hay una fiesta en la calle','Es mediodía soleado'],correct:1,explanation:'Cobijas, ventana cerrada y chocolate caliente son pistas de un ambiente frío.',remember:'Varias pistas unidas fortalecen una inferencia.',goal:'Construir inferencias con varias evidencias del texto.'}
+        ]
+      },
+      {
+        id:4, cls:'w5', icon:'🌳', title:'El Bosque de los Personajes', topic:'Protagonistas, antagonistas y personajes secundarios',
+        lesson:'Los personajes cumplen funciones distintas. El protagonista suele ser el personaje principal; el antagonista se opone o dificulta sus objetivos; los secundarios acompañan, ayudan o complementan la historia.',
+        key:'Clave didáctica: pregúntate quién vive la aventura principal, quién se opone y quién acompaña o aporta al desarrollo de la narración.',
+        concepts:[['Protagonista','Personaje principal de la historia.'],['Antagonista','Personaje o fuerza que genera oposición.'],['Secundario','Personaje que acompaña o apoya la trama.']],
+        levels:[
+          {mission:'Identifica protagonista',fragment:'Sara decidió salvar el jardín de la escuela. Organizó a sus compañeros, habló con la rectora y sembró nuevas plantas.',hint:'El protagonista realiza las acciones principales.',question:'¿Quién es la protagonista?',options:['La rectora','Sara','Las plantas','Los compañeros'],correct:1,explanation:'Sara lidera las acciones principales de la historia.',remember:'El protagonista es el centro de la acción narrativa.',goal:'Reconocer al personaje principal de un cuento.'},
+          {mission:'Identifica antagonista',fragment:'El zorro escondía las semillas para que Luna no pudiera sembrar el bosque encantado.',hint:'Busca quién se opone al objetivo del personaje principal.',question:'¿Qué personaje actúa como antagonista?',options:['Luna','El bosque','El zorro','Las semillas'],correct:2,explanation:'El zorro impide que Luna cumpla su propósito, por eso funciona como antagonista.',remember:'El antagonista no siempre es malvado, pero sí genera oposición o conflicto.',goal:'Identificar fuerzas o personajes que dificultan la acción principal.'},
+          {mission:'Reconoce personaje secundario',fragment:'Durante su viaje, Julián recibió ayuda de una anciana que le entregó un mapa y luego volvió a su casa.',hint:'El personaje secundario ayuda, pero no vive toda la aventura principal.',question:'¿Quién es el personaje secundario?',options:['Julián','La anciana','El mapa','La casa'],correct:1,explanation:'La anciana participa para ayudar a Julián, pero no es el centro de la historia.',remember:'Los secundarios enriquecen la narración y apoyan la trama.',goal:'Distinguir personajes secundarios dentro de una historia.'},
+          {mission:'Clasifica una fuerza antagonista',fragment:'María quería llegar al festival, pero una tormenta bloqueó el camino durante horas.',hint:'A veces el antagonista no es una persona.',question:'¿Qué elemento se opone al objetivo de María?',options:['El festival','La tormenta','El camino libre','Las horas felices'],correct:1,explanation:'La tormenta dificulta que María llegue al festival, por eso actúa como fuerza antagonista.',remember:'Un obstáculo natural también puede cumplir función de antagonista.',goal:'Reconocer antagonistas no humanos.'},
+          {mission:'Analiza función del personaje',fragment:'El perro Trueno acompañó a Nicolás por el bosque, lo alertó de un peligro y encontró el sendero de regreso.',hint:'Piensa qué hace Trueno en la historia.',question:'¿Qué función cumple Trueno?',options:['Antagonista que impide avanzar','Personaje secundario que ayuda','Narrador de la historia','Lugar donde ocurre la acción'],correct:1,explanation:'Trueno acompaña y ayuda al protagonista; por eso es un personaje secundario de apoyo.',remember:'La función del personaje depende de sus acciones en la historia.',goal:'Clasificar personajes según su participación narrativa.'}
+        ]
+      },
+      {
+        id:5, cls:'w6', icon:'🪄', title:'El Taller de las Palabras Mágicas', topic:'Lenguaje creativo, comparaciones y personificaciones sencillas',
+        lesson:'El lenguaje creativo embellece los cuentos. Las comparaciones relacionan dos elementos usando palabras como “como” o “parece”. La personificación da cualidades humanas a animales, objetos o elementos de la naturaleza.',
+        key:'Clave didáctica: observa si una expresión compara dos elementos o si entrega acciones humanas a algo que no es persona.',
+        concepts:[['Comparación','Relaciona elementos: “rápido como el viento”.'],['Personificación','Da acciones humanas a objetos o animales: “el sol sonrió”.'],['Lenguaje creativo','Hace que las imágenes del cuento sean más expresivas.']],
+        levels:[
+          {mission:'Reconoce comparación',fragment:'La luna brillaba como una moneda de plata sobre el río tranquilo.',hint:'Busca la palabra “como”.',question:'¿Qué figura literaria aparece?',options:['Comparación','Personificación','Diálogo','Índice'],correct:0,explanation:'Se compara la luna con una moneda de plata usando la palabra “como”.',remember:'La comparación une dos ideas para crear una imagen clara.',goal:'Identificar comparaciones sencillas en un cuento.'},
+          {mission:'Reconoce personificación',fragment:'El viento cantaba entre las hojas mientras la tarde se vestía de naranja.',hint:'El viento realiza una acción humana.',question:'¿Qué figura se observa en “el viento cantaba”?',options:['Comparación','Personificación','Listado','Título'],correct:1,explanation:'Cantar es una acción humana atribuida al viento; por eso es personificación.',remember:'La personificación hace que la naturaleza o los objetos parezcan vivos.',goal:'Reconocer acciones humanas en elementos no humanos.'},
+          {mission:'Distingue lenguaje creativo',fragment:'El camino parecía una serpiente dormida que cruzaba la montaña.',hint:'Se relaciona el camino con otro elemento para imaginar su forma.',question:'¿Qué recurso se usa principalmente?',options:['Una instrucción','Una comparación creativa','Una definición científica','Una noticia'],correct:1,explanation:'El camino se compara con una serpiente dormida para crear una imagen visual.',remember:'El lenguaje creativo ayuda al lector a imaginar escenas con mayor detalle.',goal:'Interpretar imágenes literarias sencillas.'},
+          {mission:'Completa una comparación',fragment:'El colibrí era rápido como ________ cuando visitaba las flores del patio.',hint:'Elige un elemento asociado con rapidez.',question:'¿Cuál opción completa mejor la comparación?',options:['una piedra quieta','el viento','una mesa','un cuaderno cerrado'],correct:1,explanation:'“Rápido como el viento” es una comparación coherente porque el viento se asocia con velocidad.',remember:'Una buena comparación debe tener sentido con la cualidad mencionada.',goal:'Construir comparaciones coherentes.'},
+          {mission:'Identifica personificación creativa',fragment:'Las estrellas guiñaban sus ojos sobre el techo de la casa vieja.',hint:'Las estrellas no tienen ojos reales.',question:'¿Por qué es una personificación?',options:['Porque las estrellas hacen una acción humana','Porque menciona una casa','Porque no hay personajes','Porque ocurre de día'],correct:0,explanation:'Guiñar los ojos es una acción humana atribuida a las estrellas.',remember:'La personificación convierte objetos o elementos naturales en seres expresivos.',goal:'Explicar por qué una expresión es personificación.'}
+        ]
+      }
+    ];
+
+    let currentWorld = 0;
+    let currentLevel = 0;
+    let score = 0;
+    let lives = 3;
+    let soundOn = true;
+    let timer = null;
+    let timeLeft = 25;
+    let answered = false;
+    let lastCorrect = false;
+    let audioCtx = null;
+
+    const $ = id => document.getElementById(id);
+
+    function init(){
+      renderFloaters();
+      renderWorlds();
+      updateSoundButtons();
+    }
+
+    function renderFloaters(){
+      const icons = ['📚','📜','⭐','🪶','🎭','🧭','✒️','🔖','🕯️','🪄'];
+      const box = $('floaters');
+      for(let i=0;i<26;i++){
+        const span = document.createElement('span');
+        span.className='floater';
+        span.textContent=icons[i%icons.length];
+        span.style.left = Math.random()*100+'%';
+        span.style.animationDelay = (Math.random()*16)+'s';
+        span.style.animationDuration = (13+Math.random()*12)+'s';
+        span.style.fontSize = (1.4+Math.random()*2.2)+'rem';
+        box.appendChild(span);
+      }
+    }
+
+    function renderWorlds(){
+      const grid = $('worldGrid');
+      grid.innerHTML = worlds.map((w,i)=>`
+        <article class="world-card ${w.cls}">
+          <div class="world-icon">${w.icon}</div>
+          <h2>${i+1}. ${w.title}</h2>
+          <p><b>Tema:</b> ${w.topic}</p>
+          <button class="enter" onclick="openLesson(${i})">Entrar al mundo →</button>
+        </article>
+      `).join('');
+    }
+
+    function showScreen(id){
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+      $(id).classList.add('active');
+    }
+
+    function openLesson(i){
+      clearInterval(timer);
+      currentWorld = i;
+      currentLevel = 0;
+      lives = 3;
+      score = 0;
+      playTone('start');
+      const w = worlds[i];
+      $('lessonPanel').innerHTML = `
+        <div class="lesson-head">
+          <div class="lesson-title">
+            <div class="big-icon ${w.cls}">${w.icon}</div>
+            <div>
+              <h2>${w.title}</h2>
+              <div class="topic">${w.topic}</div>
+            </div>
+          </div>
+          <div class="top-actions">
+            <button class="btn alt" onclick="goHome()">🏠 Inicio</button>
+            <button class="btn alt" id="soundLesson" onclick="toggleSound()">🔊 Sonido activo</button>
+          </div>
+        </div>
+        <p class="lesson-text">${w.lesson}</p>
+        <div class="didactic-key"><b>💡 ${w.key}</b></div>
+        <div class="concept-grid">
+          ${w.concepts.map(c=>`<div class="concept"><b>${c[0]}</b>${c[1]}</div>`).join('')}
+        </div>
+        <div class="top-actions" style="justify-content:flex-start;margin-top:24px">
+          <button class="btn" onclick="startGame()">🚀 Iniciar desafíos</button>
+          <button class="btn alt" onclick="goHome()">Elegir otro mundo</button>
+        </div>
+      `;
+      showScreen('lesson');
+      updateSoundButtons();
+    }
+
+    function startGame(){
+      currentLevel = 0;
+      lives = 3;
+      score = 0;
+      renderGame();
+      showScreen('game');
+    }
+
+    function renderGame(){
+      clearInterval(timer);
+      answered = false;
+      const w = worlds[currentWorld];
+      const l = w.levels[currentLevel];
+      const progress = Math.round((currentLevel / w.levels.length) * 100);
+      $('gamePanel').innerHTML = `
+        <div class="game-head">
+          <div class="game-title">
+            <h2>${w.icon} ${w.title}</h2>
+            <div class="topic">Nivel ${currentLevel+1} de ${w.levels.length}: ${l.mission}</div>
+          </div>
+          <div class="top-actions">
+            <button class="btn alt" id="soundGame" onclick="toggleSound()">🔊 Sonido activo</button>
+            <button class="btn alt" onclick="goHome()">🏠 Inicio</button>
+          </div>
+        </div>
+        <div class="status-row">
+          <span class="pill">🏆 Puntaje: <b id="scoreLabel">${score}</b></span>
+          <span class="pill">❤️ Vidas: <b id="livesLabel">${'❤️'.repeat(lives)}${'🖤'.repeat(3-lives)}</b></span>
+          <span class="pill">⏱️ Tiempo: <b id="timeLabel">25</b>s</span>
+        </div>
+        <div class="progress-wrap" title="Progreso del mundo"><div class="progress-bar" id="progressBar" style="width:${progress}%"></div></div>
+        <div style="height:10px"></div>
+        <div class="time-wrap" title="Tiempo restante"><div class="time-bar" id="timeBar"></div></div>
+        <div class="game-layout" style="margin-top:22px">
+          <section class="text-card">
+            <div class="mission">🎯 Misión: ${l.mission}</div>
+            <div class="fragment"><b>Texto base:</b><br>${l.fragment}</div>
+            <div class="hint"><b>🔎 Pista:</b> ${l.hint}</div>
+            <div class="remember"><b>📌 Recuerda:</b> ${l.remember}</div>
+          </section>
+          <section class="question-card">
+            <div class="question">${l.question}</div>
+            <div class="options">
+              ${l.options.map((op,idx)=>`<button class="option" onclick="chooseOption(${idx})">${String.fromCharCode(65+idx)}. ${op}</button>`).join('')}
+            </div>
+            <div class="goal">✅ Propósito: ${l.goal}</div>
+          </section>
+        </div>
+      `;
+      updateSoundButtons();
+      startTimer();
+    }
+
+    function startTimer(){
+      timeLeft = 25;
+      updateTimeUI();
+      timer = setInterval(()=>{
+        timeLeft--;
+        if(timeLeft <= 5 && timeLeft > 0) playTone('alert');
+        updateTimeUI();
+        if(timeLeft <= 0){
+          clearInterval(timer);
+          if(!answered){
+            answered = true;
+            lives--;
+            playTone('error');
+            showFeedback(false, 'El tiempo se agotó. Lee con calma la pista y vuelve a intentarlo.');
+          }
+        }
+      },1000);
+    }
+
+    function updateTimeUI(){
+      if($('timeLabel')) $('timeLabel').textContent = Math.max(0,timeLeft);
+      if($('timeBar')) $('timeBar').style.width = (Math.max(0,timeLeft)/25*100)+'%';
+    }
+
+    function chooseOption(idx){
+      if(answered) return;
+      answered = true;
+      clearInterval(timer);
+      playTone('select');
+      const w = worlds[currentWorld];
+      const l = w.levels[currentLevel];
+      const buttons = document.querySelectorAll('.option');
+      buttons.forEach((b,i)=>{
+        b.disabled=true;
+        if(i === l.correct) b.classList.add('correct');
+        if(i === idx && idx !== l.correct) b.classList.add('wrong');
+      });
+      const ok = idx === l.correct;
+      if(ok){
+        score += 100 + timeLeft * 2;
+        playTone('success');
+        confetti();
+      } else {
+        lives--;
+        playTone('error');
+      }
+      if($('scoreLabel')) $('scoreLabel').textContent = score;
+      if($('livesLabel')) $('livesLabel').textContent = '❤️'.repeat(Math.max(0,lives)) + '🖤'.repeat(Math.max(0,3-lives));
+      setTimeout(()=>showFeedback(ok),650);
+    }
+
+    function showFeedback(ok, extra=''){
+      lastCorrect = ok;
+      const w = worlds[currentWorld];
+      const l = w.levels[currentLevel];
+      const modal = $('feedbackModal');
+      const card = $('modalCard');
+      card.className = 'modal-card ' + (ok ? 'ok':'bad');
+      $('modalEmoji').textContent = ok ? '🎉':'🧩';
+      $('modalTitle').textContent = ok ? '¡Respuesta correcta!' : (lives <= 0 ? 'Fin del intento' : 'Respuesta incorrecta');
+      $('modalText').innerHTML = `<b>${extra || l.explanation}</b>`;
+      $('modalRemember').innerHTML = `📌 ${l.remember}`;
+      $('modalNext').textContent = ok ? (currentLevel === w.levels.length-1 ? 'Finalizar mundo' : 'Siguiente nivel') : (lives <= 0 ? 'Reiniciar mundo' : 'Reintentar nivel');
+      modal.classList.add('active');
+    }
+
+    function nextAction(){
+      $('feedbackModal').classList.remove('active');
+      const w = worlds[currentWorld];
+      if(lastCorrect){
+        currentLevel++;
+        if(currentLevel >= w.levels.length){
+          finishWorld();
+        } else {
+          renderGame();
+        }
+      } else {
+        if(lives <= 0){
+          currentLevel = 0;
+          lives = 3;
+          score = 0;
+        }
+        renderGame();
+      }
+    }
+
+    function finishWorld(){
+      clearInterval(timer);
+      const w = worlds[currentWorld];
+      $('gamePanel').innerHTML = `
+        <div class="hero" style="text-align:center">
+          <div class="overline">Mundo completado</div>
+          <h1 style="font-size:clamp(2.2rem,6vw,4.4rem)">${w.icon} ¡Exploración lograda!</h1>
+          <p class="subtitle">Has terminado ${w.title}</p>
+          <p class="description">Puntaje final: <b style="color:var(--gold)">${score}</b>. Demostraste comprensión, atención a las pistas y dominio del tema trabajado.</p>
+          <div class="top-actions">
+            <button class="btn" onclick="goHome()">Elegir otro mundo</button>
+            <button class="btn alt" onclick="openLesson(${currentWorld})">Repetir mundo</button>
+          </div>
+        </div>
+      `;
+      $('progressBar')?.style && ($('progressBar').style.width='100%');
+      confetti(90);
+      playTone('success');
+    }
+
+    function goHome(){
+      clearInterval(timer);
+      $('feedbackModal').classList.remove('active');
+      showScreen('home');
+      updateSoundButtons();
+    }
+
+    function startSound(){
+      soundOn = true;
+      playTone('start');
+      updateSoundButtons();
+    }
+
+    function toggleSound(){
+      soundOn = !soundOn;
+      if(soundOn) playTone('start');
+      updateSoundButtons();
+    }
+
+    function updateSoundButtons(){
+      ['soundHome','soundLesson','soundGame'].forEach(id=>{
+        if($(id)) $(id).textContent = soundOn ? '🔊 Sonido activo' : '🔇 Sonido apagado';
+      });
+    }
+
+    function getAudio(){
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+
+    function playTone(type){
+      if(!soundOn) return;
+      try{
+        const ctx = getAudio();
+        const now = ctx.currentTime;
+        const patterns = {
+          start:[[392,.07],[523,.08],[659,.10]],
+          select:[[330,.05]],
+          success:[[523,.08],[659,.08],[784,.12]],
+          error:[[180,.12],[120,.16]],
+          alert:[[880,.035]]
+        };
+        let t = now;
+        (patterns[type] || patterns.select).forEach(([freq,dur])=>{
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = type==='error' ? 'sawtooth' : 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.0001,t);
+          gain.gain.exponentialRampToValueAtTime(type==='alert'?0.045:0.09,t+0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(t); osc.stop(t+dur+.02);
+          t += dur + .025;
+        });
+      }catch(e){}
+    }
+
+    function confetti(amount=55){
+      const colors = ['#ffd56b','#ff8ac8','#63f5a2','#5ee7ff','#ffffff','#b39cff'];
+      for(let i=0;i<amount;i++){
+        const piece = document.createElement('div');
+        piece.className='confetti';
+        piece.style.left = Math.random()*100+'vw';
+        piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+        piece.style.animationDelay = Math.random()*0.25+'s';
+        piece.style.transform = `rotate(${Math.random()*360}deg)`;
+        document.body.appendChild(piece);
+        setTimeout(()=>piece.remove(),1800);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
